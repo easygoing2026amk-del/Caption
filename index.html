@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="my">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GTS Caption AI | Dual Language</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;700;800&family=Padauk:wght@400;700&display=swap');
+        
+        :root {
+            --bg-dark: #070708;
+            --card-bg: #111114;
+            --accent: #3b82f6;
+        }
+
+        body {
+            font-family: 'Plus Jakarta Sans', 'Padauk', sans-serif;
+            background-color: var(--bg-dark);
+            color: #ffffff;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        .neo-card {
+            background: var(--card-bg);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: 1.5rem;
+        }
+
+        .glow-btn {
+            background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+            box-shadow: 0 10px 20px -10px rgba(59, 130, 246, 0.5);
+        }
+
+        .platform-btn {
+            background: #1a1a1e;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            transition: all 0.2s;
+        }
+
+        .platform-btn.active {
+            border-color: #3b82f6;
+            background: rgba(59, 130, 246, 0.1);
+            color: #3b82f6;
+        }
+
+        .caption-pair {
+            animation: fadeIn 0.5s ease-out forwards;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .copy-btn:active { transform: scale(0.9); }
+    </style>
+</head>
+<body class="min-h-screen">
+
+    <div class="max-w-xl mx-auto px-5 py-8">
+        <!-- Header -->
+        <header class="flex flex-col items-center mb-10">
+            <h1 class="text-3xl font-extrabold tracking-tighter">GTS <span class="text-blue-500 italic">CAPTION</span></h1>
+            <p class="text-gray-500 text-[10px] font-bold uppercase tracking-[0.3em] mt-1">Dual Language AI Engine</p>
+        </header>
+
+        <!-- Image Input -->
+        <div class="mb-8">
+            <input type="file" id="file-input" accept="image/*" class="hidden">
+            <div id="drop-zone" class="neo-card p-3 min-h-[280px] flex items-center justify-center cursor-pointer hover:border-blue-500/50 transition-colors group">
+                <div id="preview-container" class="hidden w-full h-full relative">
+                    <img id="image-preview" src="" class="w-full h-72 object-cover rounded-xl">
+                    <div class="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 flex items-center justify-center rounded-xl transition-opacity">
+                        <span class="text-xs font-bold uppercase tracking-widest">Change Image</span>
+                    </div>
+                </div>
+                <div id="upload-placeholder" class="text-center">
+                    <div class="w-14 h-14 bg-white/5 text-gray-400 rounded-2xl flex items-center justify-center mx-auto mb-4 group-hover:text-blue-500 transition-colors">
+                        <i class="fas fa-plus text-xl"></i>
+                    </div>
+                    <p class="text-sm font-bold text-gray-400">ပုံအရင်တင်ပေးပါ</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Options Container -->
+        <div id="options-container" class="hidden space-y-8">
+            <div>
+                <span class="text-[10px] font-black text-gray-600 uppercase tracking-widest block mb-4">Platform ရွေးပါ</span>
+                <div class="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                    <button onclick="selectPlatform('Facebook', this)" class="platform-btn py-3 rounded-xl text-xs font-bold">Facebook</button>
+                    <button onclick="selectPlatform('TikTok', this)" class="platform-btn py-3 rounded-xl text-xs font-bold">TikTok</button>
+                    <button onclick="selectPlatform('Instagram', this)" class="platform-btn py-3 rounded-xl text-xs font-bold">Instagram</button>
+                    <button onclick="selectPlatform('YouTube', this)" class="platform-btn py-3 rounded-xl text-xs font-bold">YouTube</button>
+                </div>
+            </div>
+
+            <button id="generate-btn" class="hidden w-full glow-btn py-5 rounded-2xl font-black text-sm uppercase tracking-widest transition-transform active:scale-95">
+                Generate Captions ✨
+            </button>
+        </div>
+
+        <!-- Results -->
+        <div id="result-section" class="hidden space-y-6 mt-10">
+            <div class="flex items-center justify-between px-1">
+                <h2 class="text-sm font-black text-gray-400 uppercase tracking-widest">Results</h2>
+                <button onclick="generateCaptions()" class="text-xs text-blue-500 font-bold"><i class="fas fa-redo-alt mr-1"></i> Regenerate</button>
+            </div>
+
+            <div id="caption-list" class="space-y-4">
+                <!-- Dual language pairs will be injected here -->
+            </div>
+
+            <button onclick="resetApp()" class="w-full py-6 text-[10px] font-bold text-gray-600 uppercase tracking-[0.2em] hover:text-white transition">
+                Start Over
+            </button>
+        </div>
+
+        <!-- Loading -->
+        <div id="loading-overlay" class="hidden fixed inset-0 bg-black/90 backdrop-blur-sm z-50 flex flex-col items-center justify-center">
+            <div class="w-10 h-10 border-2 border-blue-500 border-t-transparent rounded-full animate-spin mb-4"></div>
+            <p class="text-[10px] font-bold uppercase tracking-widest text-blue-500">Creating vibes...</p>
+        </div>
+    </div>
+
+    <script>
+        const apiKey = ""; // Set by runtime
+        const fileInput = document.getElementById('file-input');
+        const dropZone = document.getElementById('drop-zone');
+        const previewContainer = document.getElementById('preview-container');
+        const uploadPlaceholder = document.getElementById('upload-placeholder');
+        const imagePreview = document.getElementById('image-preview');
+        const optionsContainer = document.getElementById('options-container');
+        const generateBtn = document.getElementById('generate-btn');
+        const resultSection = document.getElementById('result-section');
+        const captionList = document.getElementById('caption-list');
+        const loadingOverlay = document.getElementById('loading-overlay');
+
+        let base64Image = '';
+        let selectedPlatform = '';
+
+        dropZone.onclick = () => fileInput.click();
+
+        fileInput.onchange = (e) => {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = (re) => {
+                    base64Image = re.target.result.split(',')[1];
+                    imagePreview.src = re.target.result;
+                    previewContainer.classList.remove('hidden');
+                    uploadPlaceholder.classList.add('hidden');
+                    optionsContainer.classList.remove('hidden');
+                    resultSection.classList.add('hidden');
+                };
+                reader.readAsDataURL(file);
+            }
+        };
+
+        function selectPlatform(name, el) {
+            selectedPlatform = name;
+            document.querySelectorAll('.platform-btn').forEach(b => b.classList.remove('active'));
+            el.classList.add('active');
+            generateBtn.classList.remove('hidden');
+        }
+
+        async function generateCaptions() {
+            if (!base64Image || !selectedPlatform) return;
+            
+            loadingOverlay.classList.remove('hidden');
+            captionList.innerHTML = '';
+
+            const prompt = `You are a trendy Gen-Z social media manager from Myanmar. 
+            Analyze this photo and provide 4-5 engaging caption sets for ${selectedPlatform}.
+            Each set MUST have an English version and a corresponding Burmese version.
+
+            STRICT FORMAT:
+            English: [Catchy English Caption]
+            Burmese: [Natural Burmese Caption]
+            ---
+
+            RULES:
+            - English should be trendy, short, and use slang (e.g. Vibes, Mood, Aesthetic).
+            - Burmese MUST be natural spoken Burmese (Casual/Human).
+            - NEVER use "သည်" "ပါသည်" "ဖော်ပြချက်". Use "တယ်" "တာပဲ" "နော်" "လေး".
+            - No AI robot introductions. Just the content.
+            - Ensure the meaning matches but sounds local.`;
+
+            try {
+                const response = await fetchWithRetry(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        contents: [{
+                            parts: [
+                                { text: prompt },
+                                { inlineData: { mimeType: "image/png", data: base64Image } }
+                            ]
+                        }]
+                    })
+                });
+
+                const data = await response.json();
+                const text = data.candidates?.[0]?.content?.parts?.[0]?.text || "";
+                displayResults(text);
+            } catch (err) {
+                alert("တစ်ခုခုမှားယွင်းနေပါသည်။ ထပ်မံကြိုးစားပါ။");
+            } finally {
+                loadingOverlay.classList.add('hidden');
+            }
+        }
+
+        function displayResults(text) {
+            const chunks = text.split('---').filter(c => c.trim().length > 10);
+            
+            chunks.forEach((chunk, i) => {
+                const enMatch = chunk.match(/English:\s*(.*)/i);
+                const mmMatch = chunk.match(/Burmese:\s*(.*)/i);
+                
+                if (enMatch && mmMatch) {
+                    const en = enMatch[1].trim();
+                    const mm = mmMatch[1].trim();
+
+                    const div = document.createElement('div');
+                    div.className = "caption-pair neo-card p-5 space-y-4";
+                    div.style.animationDelay = `${i * 0.1}s`;
+                    div.innerHTML = `
+                        <div class="flex justify-between items-start gap-4">
+                            <div class="space-y-3 flex-grow">
+                                <div>
+                                    <span class="text-[8px] font-black text-blue-500 uppercase tracking-widest block mb-1">English</span>
+                                    <p class="text-sm font-bold text-gray-200">${en}</p>
+                                </div>
+                                <div class="pt-2 border-t border-white/5">
+                                    <span class="text-[8px] font-black text-pink-500 uppercase tracking-widest block mb-1">Myanmar</span>
+                                    <p class="text-sm font-bold text-gray-200">${mm}</p>
+                                </div>
+                            </div>
+                            <button onclick="copyPair(this, \`${en.replace(/'/g, "\\'")}\\n${mm.replace(/'/g, "\\'")}\`)" class="copy-btn text-gray-600 hover:text-blue-500 transition-colors pt-2">
+                                <i class="far fa-copy text-lg"></i>
+                            </button>
+                        </div>
+                    `;
+                    captionList.appendChild(div);
+                }
+            });
+
+            optionsContainer.classList.add('hidden');
+            resultSection.classList.remove('hidden');
+            resultSection.scrollIntoView({ behavior: 'smooth' });
+        }
+
+        async function fetchWithRetry(url, opts, retries = 5) {
+            const res = await fetch(url, opts);
+            if (!res.ok && retries > 0) {
+                await new Promise(r => setTimeout(r, 1000));
+                return fetchWithRetry(url, opts, retries - 1);
+            }
+            return res;
+        }
+
+        function copyPair(btn, text) {
+            const temp = document.createElement('textarea');
+            temp.value = text;
+            document.body.appendChild(temp);
+            temp.select();
+            document.execCommand('copy');
+            document.body.removeChild(temp);
+            
+            const icon = btn.querySelector('i');
+            icon.className = 'fas fa-check text-green-500';
+            setTimeout(() => { icon.className = 'far fa-copy'; }, 2000);
+        }
+
+        function resetApp() {
+            previewContainer.classList.add('hidden');
+            uploadPlaceholder.classList.remove('hidden');
+            optionsContainer.classList.add('hidden');
+            resultSection.classList.add('hidden');
+            fileInput.value = '';
+            base64Image = '';
+        }
+
+        generateBtn.onclick = generateCaptions;
+    </script>
+</body>
+</html>
+
